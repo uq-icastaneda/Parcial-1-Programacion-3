@@ -1,0 +1,25 @@
+# Archivos compilados por Elixir
+*.beam
+/material base/
+
+# Salidas de compilacion de Mix
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+
+# Herramientas de lenguaje
+.elixir_ls/
+lexical/
+
+# Archivos de prueba de Cover
+cover/
+
+# Errores de la maquina virtual de Erlang
+erl_crash.dump
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+*.swp
