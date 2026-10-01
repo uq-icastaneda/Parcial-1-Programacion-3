@@ -27,24 +27,26 @@ defmodule Datos do
 
   def repartidores do
     [
-      # EJEMPLO:
-      # %{codigo: "M01", nombre: "Ana Torres", bicicleta: true}
-
-      # TODO MAFE:
-      # completar minimo 10 repartidores
-      # con minimo 4 que usen bicicleta: true
+      %{codigo: "M01", nombre: "Ana Torres", bicicleta: true},
+      %{codigo: "M02", nombre: "Luis Garcia", bicicleta: false},
+      %{codigo: "M03", nombre: "Carlos Ruiz", bicicleta: true},
+      %{codigo: "M04", nombre: "Maria Lopez", bicicleta: true},
+      %{codigo: "M05", nombre: "Pedro Martinez", bicicleta: false},
+      %{codigo: "M06", nombre: "Sofia Hernandez", bicicleta: true},
+      %{codigo: "M07", nombre: "Diego Diaz", bicicleta: false},
+      %{codigo: "M08", nombre: "Laura Perez", bicicleta: false},
+      %{codigo: "M09", nombre: "Jorge Sanchez", bicicleta: false},
+      %{codigo: "M10", nombre: "Elena Ramirez", bicicleta: false}
     ]
   end
 
 
   def zonas do
     [
-      # EJEMPLO:
-      # %{id: "Z1", nombre: "Centro", area: 6.5}
-
-      # TODO MAFE:
-      # completar minimo 4 zonas
-      # (area esta en km2 y puede ser decimal)
+      %{id: "Z1", nombre: "Centro", area: 6.5},
+      %{id: "Z2", nombre: "Norte", area: 8.2},
+      %{id: "Z3", nombre: "Sur", area: 5.0},
+      %{id: "Z4", nombre: "Oriente", area: 7.3}
     ]
   end
 

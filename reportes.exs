@@ -215,20 +215,22 @@ defmodule Reportes do
   # ============================================================
 
   def r4(liquidaciones) do
-    # TODO MAFE:
-    #
-    # Ordenar por neto de mayor a menor.
-    # Numerar desde 1.
-    # Mostrar:
-    # numero
-    # nombre
-    # kilometros
-    # valor de servicios
-    # bonificaciones
-    # alquiler
-    # neto
+    lineas =
+      liquidaciones
+      |> Enum.sort_by(fn liquidacion -> liquidacion.neto end, :desc)
+      |> Enum.with_index()
+      |> Enum.map(fn {liquidacion, indice} ->
+        "#{indice + 1}. | #{liquidacion.nombre} | #{liquidacion.kilometros} km | " <>
+          "$#{formatear_pesos(liquidacion.servicios)} | " <>
+          "$#{formatear_pesos(liquidacion.bonificaciones)} | " <>
+          "$#{formatear_pesos(liquidacion.alquiler)} | " <>
+          "$#{formatear_pesos(liquidacion.neto)}"
+      end)
+      |> Enum.join("\n")
 
-    "R4 pendiente"
+    "R4. Liquidacion de la semana\n" <>
+      "# | Repartidor | Kilometros | Servicios | Bonificaciones | Alquiler | Neto\n" <>
+      lineas
   end
 
 
@@ -258,17 +260,27 @@ defmodule Reportes do
   # ============================================================
 
   def r7(liquidaciones, servicios_validos) do
-    # TODO MAFE:
-    #
-    # total_pagado = suma de netos
-    # kilometros_validos = suma de kilometros de servicios validos
-    #
-    # costo_promedio =
-    # total_pagado / kilometros_validos
-    #
-    # Cuidar el caso kilometros_validos == 0.
+    total_pagado =
+      Enum.reduce(liquidaciones, 0, fn liquidacion, acumulador ->
+        acumulador + liquidacion.neto
+      end)
 
-    "R7 pendiente"
+    kilometros_validos =
+      Enum.reduce(servicios_validos, 0, fn servicio, acumulador ->
+        acumulador + servicio.kilometros
+      end)
+
+    costo_promedio =
+      if kilometros_validos == 0 do
+        0
+      else
+        total_pagado / kilometros_validos
+      end
+
+    "R7. Totales de la semana\n" <>
+      "Total a pagar: $#{formatear_pesos(total_pagado)}\n" <>
+      "Kilometros validos: #{kilometros_validos} km\n" <>
+      "Costo promedio por kilometro: $#{formatear_pesos(costo_promedio)}"
   end
 
 
@@ -324,25 +336,59 @@ defmodule Reportes do
         servicios_validos,
         liquidaciones
       ) do
-    # TODO MAFE:
-    #
-    # 1. Buscar el repartidor.
-    # 2. Si no existe, devolver mensaje.
-    # 3. Si existe:
-    #    - buscar su liquidacion
-    #    - filtrar sus servicios validos
-    #    - agrupar por dia
-    #    - para cada dia mostrar:
-    #         kilometros
-    #         valor de servicios
-    #         bonificacion
-    #    - mostrar suma de servicios, suma de bonificaciones,
-    #      descuento por alquiler y neto a pagar
-    #
-    # Solo deben aparecer los dias en los que exista por lo menos
-    # un servicio valido.
+    repartidor = Map.get(repartidores_por_codigo, codigo)
 
-    "Comprobante pendiente para #{codigo}"
+    if repartidor == nil do
+      "No existe un repartidor con el codigo #{codigo}."
+    else
+      liquidacion =
+        Enum.find(liquidaciones, fn item ->
+          item.codigo == codigo
+        end)
+
+      servicios_repartidor =
+        Enum.filter(servicios_validos, fn servicio ->
+          servicio.repartidor == codigo
+        end)
+
+      servicios_por_dia =
+        Enum.group_by(servicios_repartidor, fn servicio ->
+          servicio.dia
+        end)
+
+      detalle =
+        servicios_por_dia
+        |> Map.keys()
+        |> Enum.sort_by(fn dia -> dia end, :asc)
+        |> Enum.map(fn dia ->
+          servicios_dia = Map.get(servicios_por_dia, dia)
+
+          kilometros =
+            Enum.reduce(servicios_dia, 0, fn servicio, acumulador ->
+              acumulador + servicio.kilometros
+            end)
+
+          valor_dia =
+            Enum.reduce(servicios_dia, 0, fn servicio, acumulador ->
+              acumulador + Liquidacion.valor_servicio(servicio)
+            end)
+
+          bonificacion =
+            Liquidacion.bonificacion_dia(kilometros)
+
+          "Dia #{dia}: #{kilometros} km | " <>
+            "servicios $#{formatear_pesos(valor_dia)} | " <>
+            "bonificacion $#{formatear_pesos(bonificacion)}"
+        end)
+        |> Enum.join("\n")
+
+      "Comprobante de pago - #{repartidor.nombre} (#{repartidor.codigo})\n" <>
+        detalle <>
+        "\nSuma de servicios: $#{formatear_pesos(liquidacion.servicios)}" <>
+        "\nBonificaciones: $#{formatear_pesos(liquidacion.bonificaciones)}" <>
+        "\nAlquiler (#{liquidacion.dias_trabajados} dias): -$#{formatear_pesos(liquidacion.alquiler)}" <>
+        "\nNeto a pagar: $#{formatear_pesos(liquidacion.neto)}"
+    end
   end
 
 

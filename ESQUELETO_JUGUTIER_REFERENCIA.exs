@@ -52,8 +52,6 @@
 #
 #   colecciones.exs        -> Cristian
 #   util.exs               -> queda listo (lo escribe el primero que empiece)
-#   benchmarks.exs buscar  -> Sergio
-#   benchmarks.exs listas  -> Mafe
 #   datos.exs repartidores -> Mafe
 #   datos.exs zonas        -> Mafe
 #   datos.exs servicios    -> Sergio
