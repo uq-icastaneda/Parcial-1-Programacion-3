@@ -1,27 +1,10 @@
-# Integrantes: Sergio, Cristian y Mafe
-# Responsable principal: Mafe
-#
-# Partes:
-# - B.3 Liquidacion
-# - reglas 2, 3, 4 y 5
-
 defmodule Liquidacion do
 
-  @moduledoc """
-  Calcula el valor de cada servicio, las bonificaciones por
-  productividad, el alquiler de bicicleta y el neto de cada repartidor.
-  """
-
-  # Valores fijos del parcial
   @tarifa_base 2_500
   @kilometros_bonificacion 80
   @bonificacion_diaria 15_000
   @alquiler_bicicleta 10_000
 
-
-  # ============================================================
-  # M1. VALOR DE UN SERVICIO
-  # ============================================================
 
   def valor_servicio(servicio) do
     valor_base = servicio.kilometros * @tarifa_base
@@ -41,11 +24,6 @@ defmodule Liquidacion do
     end
   end
 
-
-  # ============================================================
-  # M2. BONIFICACION POR PRODUCTIVIDAD
-  # ============================================================
-
   def bonificacion_dia(kilometros_dia)
       when kilometros_dia >= @kilometros_bonificacion do
     @bonificacion_diaria
@@ -56,10 +34,6 @@ defmodule Liquidacion do
   end
 
 
-  # ============================================================
-  # M3. ALQUILER DE BICICLETA
-  # ============================================================
-
   def alquiler_bicicleta(true, dias_trabajados) do
     dias_trabajados * @alquiler_bicicleta
   end
@@ -68,10 +42,6 @@ defmodule Liquidacion do
     0
   end
 
-
-  # ============================================================
-  # M4. LIQUIDAR A TODOS
-  # ============================================================
 
   def liquidar_repartidores(repartidores, servicios_validos) do
     Enum.map(repartidores, fn repartidor ->

@@ -1,33 +1,4 @@
-# Integrantes: Sergio, Cristian y Mafe
-#
-# ESTE ARCHIVO ES COMPARTIDO.
-#
-# Responsables:
-#
-# R1 -> Sergio
-# R2 -> Cristian
-# R3 -> Cristian
-# R4 -> Mafe
-# R5 -> Cristian
-# R6 -> Sergio
-# R7 -> Mafe
-# R8 -> Cristian
-# ranking/2 -> Cristian
-# combinar_empresas/2 -> Sergio
-# mapa_dias_a_texto/1 -> Sergio
-# comprobante/4 -> Mafe
-#
-# REGLA:
-# Las funciones de Reportes DEVUELVEN texto.
-# No deben hacer IO.puts.
-
 defmodule Reportes do
-
-  @moduledoc """
-  Construye los reportes del parcial sin imprimirlos.
-  """
-
-  # Valores fijos del enunciado
   @meta_diaria 500
   @dias_operacion 6
 
@@ -38,13 +9,6 @@ defmodule Reportes do
     :kilometros_fuera_de_rango,
     :retraso_invalido
   ]
-
-  @minimo_servicios_r6 3
-
-
-  # ============================================================
-  # SERGIO - R1
-  # ============================================================
 
   def r1(rechazados) do
     detalle =
@@ -74,10 +38,129 @@ defmodule Reportes do
       resumen
   end
 
+  def r2(zonas, servicios_validos) do
+    resultados =
+      Enum.map(zonas, fn zona ->
+        servicios_de_zona =
+          Enum.filter(servicios_validos, fn servicio -> servicio.zona == zona end)
 
-  # ============================================================
-  # SERGIO - R6
-  # ============================================================
+        km_totales =
+          Enum.reduce(servicios_de_zona, 0, fn servicio, i -> i + servicio.kilometros end)
+
+        densidad = km_totales / zona.area
+
+        %{
+          id: zona.id,
+          nombre: zona.nombre,
+          kilometros: km_totales,
+          area: zona.area,
+          densidad: densidad
+        }
+      end)
+
+    Enum.sort_by(resultados, fn registro -> registro.densidad end, :desc)
+  end
+
+  def r3(servicios_validos) do
+    km_dias = kilometros_por_dia(servicios_validos)
+
+    detalle_dias =
+      for dia <- 1..@dias_operacion do
+        km = Map.get(km_dias, dia, 0)
+        alcanzado = km >= @meta_diaria
+
+        %{
+          dia: dia,
+          kilometros: km,
+          meta_alcanzada: alcanzado
+        }
+      end
+
+    alcanzo_todos = Enum.all?(detalle_dias, fn dia -> dia.meta_alcanzada end)
+    alcanzo_al_menos_uno = Enum.any?(detalle_dias, fn dia -> dia.meta_alcanzada end)
+
+    %{
+      dias: detalle_dias,
+      meta_todos_los_dias: alcanzo_todos,
+      meta_al_menos_un_dia: alcanzo_al_menos_uno
+    }
+  end
+
+  def r4(liquidaciones) do
+    lineas =
+      liquidaciones
+      |> Enum.sort_by(fn liquidacion -> liquidacion.neto end, :desc)
+      |> Enum.with_index()
+      |> Enum.map(fn {liquidacion, indice} ->
+        "#{indice + 1}. | #{liquidacion.nombre} | #{liquidacion.kilometros} km | " <>
+          "$#{formatear_pesos(liquidacion.servicios)} | " <>
+          "$#{formatear_pesos(liquidacion.bonificaciones)} | " <>
+          "$#{formatear_pesos(liquidacion.alquiler)} | " <>
+          "$#{formatear_pesos(liquidacion.neto)}"
+      end)
+      |> Enum.join("\n")
+
+    "R4. Liquidacion de la semana\n" <>
+      "# | Repartidor | Kilometros | Servicios | Bonificaciones | Alquiler | Neto\n" <>
+      lineas
+  end
+
+  def r5(repartidores_por_codigo, servicios_validos) do
+    resultados_por_dia =
+      for dia <- 1..@dias_operacion do
+        servicios_del_dia = Enum.filter(servicios_validos, fn servicio -> servicio.dia == dia end)
+
+        if servicios_del_dia == [] do
+          %{
+            dia: dia,
+            ganadores: [],
+            max_kilometros: 0,
+            estado: "sin servicios"
+          }
+        else
+          km_por_repartidor =
+            Enum.reduce(servicios_del_dia, %{}, fn servicio, i ->
+              Map.update(i, servicio.repartidor, servicio.kilometros, fn actual ->
+                actual + servicio.kilometros
+              end)
+            end)
+
+          {_rep, max_km} = Enum.max_by(km_por_repartidor, fn {_codigo, km} -> km end)
+
+          ganadores_dia =
+            km_por_repartidor
+            |> Enum.filter(fn {_codigo, km} -> km == max_km end)
+            |> Enum.map(fn {codigo, _km} -> codigo end)
+
+          %{
+            dia: dia,
+            ganadores: ganadores_dia,
+            max_kilometros: max_km,
+            estado: "ok"
+          }
+        end
+      end
+
+    todos_los_ganadores = Enum.flat_map(resultados_por_dia, fn dia -> dia.ganadores end)
+
+    mejores_globales =
+      if todos_los_ganadores == [] do
+        []
+      else
+        conteo_dias = Enum.frequencies(todos_los_ganadores)
+
+        {_rep, max_dias_ganados} = Enum.max_by(conteo_dias, fn {_codigo, cant} -> cant end)
+
+        conteo_dias
+        |> Enum.filter(fn {_codigo, cant} -> cant == max_dias_ganados end)
+        |> Enum.map(fn {codigo, _cant} -> codigo end)
+      end
+
+    %{
+      detalle_dias: resultados_por_dia,
+      mas_dias_primer_lugar: mejores_globales
+    }
+  end
 
   def r6(repartidores_por_codigo, servicios_validos) do
     candidatos =
@@ -123,142 +206,6 @@ defmodule Reportes do
     end
   end
 
-
-  # ============================================================
-  # SERGIO - C.2 COMBINACION DE LAS DOS EMPRESAS
-  # ============================================================
-
-  def combinar_empresas(mapa_empresa, mapa_aliada) do
-    Map.merge(mapa_empresa, mapa_aliada, fn _dia, km_empresa, km_aliada ->
-      km_empresa + km_aliada
-    end)
-  end
-
-
-  def mapa_dias_a_texto(mapa_dias) do
-    mapa_dias
-    |> Map.keys()
-    |> Enum.sort_by(fn dia -> dia end, :asc)
-    |> Enum.map(fn dia ->
-      "Dia #{dia}: #{Map.get(mapa_dias, dia)} km"
-    end)
-    |> Enum.join("\n")
-  end
-
-
-  # ============================================================
-  # CRISTIAN - R2
-  # ============================================================
-
-  def r2(zonas, servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Para cada zona:
-    # - sumar kilometros validos
-    # - leer el area (km2)
-    # - densidad = kilometros / area
-    #
-    # Ordenar de mayor a menor densidad.
-    # Una zona sin servicios debe aparecer con 0 km.
-    # Cuidar el caso area == 0.
-
-    "R2 pendiente"
-  end
-
-
-  # ============================================================
-  # CRISTIAN - FUNCION AUXILIAR PARA R3 Y PARA C.2
-  # ============================================================
-
-  def kilometros_por_dia(servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Debe devolver un mapa:
-    #
-    # %{
-    #   1 => kilometros_dia_1,
-    #   2 => kilometros_dia_2,
-    #   ...
-    #   6 => kilometros_dia_6
-    # }
-    #
-    # Si no hay servicios en un dia, guardar 0.
-    # Este mapa es el que despues se combina en C.2.
-
-    %{}
-  end
-
-
-  # ============================================================
-  # CRISTIAN - R3
-  # ============================================================
-
-  def r3(servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Usar kilometros_por_dia/1.
-    #
-    # Para cada dia:
-    # - mostrar kilometros
-    # - indicar si se alcanzo la @meta_diaria (500 km)
-    #
-    # Al final:
-    # - ¿se alcanzo todos los dias?
-    # - ¿se alcanzo al menos un dia?
-
-    "R3 pendiente"
-  end
-
-
-  # ============================================================
-  # MAFE - R4
-  # ============================================================
-
-  def r4(liquidaciones) do
-    lineas =
-      liquidaciones
-      |> Enum.sort_by(fn liquidacion -> liquidacion.neto end, :desc)
-      |> Enum.with_index()
-      |> Enum.map(fn {liquidacion, indice} ->
-        "#{indice + 1}. | #{liquidacion.nombre} | #{liquidacion.kilometros} km | " <>
-          "$#{formatear_pesos(liquidacion.servicios)} | " <>
-          "$#{formatear_pesos(liquidacion.bonificaciones)} | " <>
-          "$#{formatear_pesos(liquidacion.alquiler)} | " <>
-          "$#{formatear_pesos(liquidacion.neto)}"
-      end)
-      |> Enum.join("\n")
-
-    "R4. Liquidacion de la semana\n" <>
-      "# | Repartidor | Kilometros | Servicios | Bonificaciones | Alquiler | Neto\n" <>
-      lineas
-  end
-
-
-  # ============================================================
-  # CRISTIAN - R5
-  # ============================================================
-
-  def r5(repartidores_por_codigo, servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Para cada dia 1..6:
-    # - sumar kilometros por repartidor
-    # - encontrar el maximo
-    # - conservar todos si hay empate
-    #
-    # Dia sin servicios -> "sin servicios"
-    #
-    # Al final:
-    # repartidor(es) que fueron mejores mas dias.
-
-    "R5 pendiente"
-  end
-
-
-  # ============================================================
-  # MAFE - R7
-  # ============================================================
-
   def r7(liquidaciones, servicios_validos) do
     total_pagado =
       Enum.reduce(liquidaciones, 0, fn liquidacion, acumulador ->
@@ -283,52 +230,51 @@ defmodule Reportes do
       "Costo promedio por kilometro: $#{formatear_pesos(costo_promedio)}"
   end
 
-
-  # ============================================================
-  # CRISTIAN - R8
-  # ============================================================
-
   def r8(repartidores, zonas, servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Encontrar repartidores que tengan al menos
-    # un servicio valido en TODAS las zonas.
-    #
-    # Si no hay ninguno, devolver un mensaje.
+    ids_zonas_totales = MapSet.new(zonas, fn zona -> zona.id end)
+    total_zonas_count = MapSet.size(ids_zonas_totales)
 
-    "R8 pendiente"
+    zonas_por_repartidor =
+      Enum.reduce(servicios_validos, %{}, fn servicio, acc ->
+        Map.update(
+          acc,
+          servicio.repartidor,
+          MapSet.new([servicio.zona]),
+          fn zonas_existentes -> MapSet.put(zonas_existentes, servicio.zona) end
+        )
+      end)
+
+    repartidores_universales =
+      repartidores
+      |> Enum.filter(fn repartidor ->
+        zonas_del_rep = Map.get(zonas_por_repartidor, repartidor.codigo, MapSet.new())
+
+        MapSet.size(zonas_del_rep) == total_zonas_count
+      end)
+      |> Enum.map(fn repartidor -> repartidor.codigo end)
+
+    if repartidores_universales == [] do
+      "No hay repartidores con servicios válidos en todas las zonas."
+    else
+      repartidores_universales
+    end
   end
 
-
-  # ============================================================
-  # CRISTIAN - C.1 RANKING CON KEYWORD LISTS
-  # ============================================================
-
-  def ranking(liquidaciones, opciones) do
-    # Estos son los valores por defecto pedidos por el parcial.
+  def ranking(liquidaciones, opciones \\ []) do
     campo = Keyword.get(opciones, :campo, :neto)
     orden = Keyword.get(opciones, :orden, :desc)
     limite = Keyword.get(opciones, :limite, length(liquidaciones))
 
-    # TODO CRISTIAN:
-    #
-    # 1. ordenar segun "campo"
-    # 2. usar "orden"
-    # 3. limitar a "limite"
-    # 4. convertir a texto
-    #
-    # Debe aceptar:
-    # :neto
-    # :kilometros
-    # :bruto
+    liquidaciones
+    |> Enum.sort_by(fn item -> valor_campo(item, campo) end, orden)
+    |> Enum.take(limite)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {item, index} ->
+      valor_formateado = mostrar_valor_ranking(item, campo)
 
-    "Ranking pendiente: campo=#{campo}, orden=#{orden}, limite=#{limite}"
+      "#{index}. Repartidor: #{item.nombre} | #{campo}: #{valor_formateado}"
+    end)
   end
-
-
-  # ============================================================
-  # MAFE - B.5 COMPROBANTE DEL REPARTIDOR
-  # ============================================================
 
   def comprobante(
         codigo,
@@ -391,64 +337,89 @@ defmodule Reportes do
     end
   end
 
-
-  # ============================================================
-  # HELPERS QUE NECESITARAN LOS REPORTES
-  # ============================================================
-
   defp linea_dia_meta(dia, kilometros) do
-    # TODO CRISTIAN:
-    # Si kilometros >= @meta_diaria -> alcanzo la meta.
-    # Si no -> no alcanzo la meta.
+    estado = if kilometros >= @meta_diaria, do: "Alcanzada", else: "No alcanzada"
 
-    "Dia #{dia}: #{kilometros} km"
+    "Día #{dia}: #{kilometros} km (#{estado})"
   end
-
 
   defp texto_si_no(true), do: "Si"
   defp texto_si_no(false), do: "No"
 
-
   defp mejor_del_dia(dia, servicios_validos) do
-    # TODO CRISTIAN:
-    #
-    # Debe devolver algo con esta forma:
-    #
-    # %{dia: dia, kilometros: maximo, mejores: ["M01", "M03"]}
-    #
-    # Si no hay servicios:
-    # %{dia: dia, kilometros: 0, mejores: []}
+    servicios_del_dia = Enum.filter(servicios_validos, fn s -> s.dia == dia end)
 
-    %{dia: dia, kilometros: 0, mejores: []}
-  end
-
-
-  defp linea_mejor_dia(resultado, repartidores_por_codigo) do
-    # TODO CRISTIAN:
-    # Convertir el resultado de mejor_del_dia/2 a texto.
-
-    "Dia #{resultado.dia}: pendiente"
-  end
-
-
-  defp nombre_repartidor(repartidores_por_codigo, codigo) do
-    # CRISTIAN lo escribe una vez, lo usan Sergio y Mafe.
-    # Buscar el codigo y retornar el nombre.
-    # Si no existe, retornar el codigo.
-
-    repartidor = Map.get(repartidores_por_codigo, codigo)
-
-    if repartidor == nil do
-      codigo
+    if servicios_del_dia == [] do
+      %{dia: dia, kilometros: 0, mejores: []}
     else
-      repartidor.nombre
+      km_por_repartidor =
+        Enum.reduce(servicios_del_dia, %{}, fn s, acc ->
+          Map.update(acc, s.repartidor, s.kilometros, fn actual -> actual + s.kilometros end)
+        end)
+
+      {_rep, max_km} = Enum.max_by(km_por_repartidor, fn {_codigo, km} -> km end)
+
+      mejores_repartidores =
+        km_por_repartidor
+        |> Enum.filter(fn {_codigo, km} -> km == max_km end)
+        |> Enum.map(fn {codigo, _km} -> codigo end)
+
+      %{
+        dia: dia,
+        kilometros: max_km,
+        mejores: mejores_repartidores
+      }
     end
   end
 
+  defp linea_mejor_dia(resultado, repartidores_por_codigo) do
+    if resultado.kilometros == 0 or resultado.mejores == [] do
+      "Día #{resultado.dia}: Sin servicios registrados."
+    else
+      nombres_mejores =
+        resultado.mejores
+        |> Enum.map(fn codigo ->
+          repartidor = Map.get(repartidores_por_codigo, codigo)
+          if repartidor, do: repartidor.nombre, else: codigo
+        end)
+        |> Enum.join(", ")
 
-  # Helpers de ranking.
-  # Las cabeceras ya quedan preparadas para que Cristian complete
-  # la logica.
+      "Día #{resultado.dia}: #{resultado.kilometros} km - Destacado(s): #{nombres_mejores}"
+    end
+  end
+
+  defp nombre_repartidor(repartidores_por_codigo, codigo) do
+    case Map.get(repartidores_por_codigo, codigo) do
+      nil -> codigo
+      repartidor -> repartidor.nombre
+    end
+  end
+
+  def kilometros_por_dia(servicios_validos) do
+    for dia <- 1..@dias_operacion, into: %{} do
+      servicios_del_dia = Enum.filter(servicios_validos, fn servicio -> servicio.dia == dia end)
+
+      total_km = Enum.reduce(servicios_del_dia, 0, fn s, i -> i + s.kilometros end)
+
+      {dia, total_km}
+    end
+  end
+
+  def combinar_empresas(mapa_empresa, mapa_aliada) do
+    Map.merge(mapa_empresa, mapa_aliada, fn _dia, km_empresa, km_aliada ->
+      km_empresa + km_aliada
+    end)
+  end
+
+  def mapa_dias_a_texto(mapa_dias) do
+    mapa_dias
+    |> Map.keys()
+    |> Enum.sort_by(fn dia -> dia end, :asc)
+    |> Enum.map(fn dia ->
+      "Dia #{dia}: #{Map.get(mapa_dias, dia)} km"
+    end)
+    |> Enum.join("\n")
+  end
 
   defp valor_campo(liquidacion, :kilometros) do
     liquidacion.kilometros
@@ -466,7 +437,6 @@ defmodule Reportes do
     liquidacion.neto
   end
 
-
   defp mostrar_valor_ranking(liquidacion, :kilometros) do
     "#{liquidacion.kilometros} km"
   end
@@ -483,14 +453,11 @@ defmodule Reportes do
     "$#{formatear_pesos(liquidacion.neto)}"
   end
 
-
-  # Formato monetario ya lo pueden dejar listo.
-  defp formatear_pesos(valor) do
+  def formatear_pesos(valor) do
     :erlang.float_to_binary(valor * 1.0, decimals: 2)
   end
 
-  defp formatear_decimal(valor) do
+  def formatear_decimal(valor) do
     :erlang.float_to_binary(valor * 1.0, decimals: 2)
   end
-
 end
