@@ -1,3 +1,7 @@
+# Sergio Armero
+# Maria Fernanda Mejia
+# Cristian Castañeda
+# ==== PARCIAL 1 PROGRAMACION 3 ====
 defmodule Colecciones do
 
   def repartidores_por_codigo(repartidores) do

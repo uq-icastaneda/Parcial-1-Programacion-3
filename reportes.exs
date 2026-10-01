@@ -1,3 +1,7 @@
+# Sergio Armero
+# Maria Fernanda Mejia
+# Cristian Castañeda
+# ==== PARCIAL 1 PROGRAMACION 3 ====
 defmodule Reportes do
   @meta_diaria 500
   @dias_operacion 6
