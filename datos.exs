@@ -1,7 +1,28 @@
-# Sergio Armero
-# Maria Fernanda Mejia
-# Cristian Castañeda
-# ==== PARCIAL 1 PROGRAMACION 3 ====
+# Integrantes: Sergio, Cristian y Mafe
+#
+# DATOS PROPIOS DEL GRUPO.
+#
+# Requisitos minimos del parcial:
+#
+# - 10 repartidores
+# - 4 o mas con bicicleta: true
+# - 4 zonas
+# - servicios validos en los 6 dias
+# - 80 servicios validos
+# - minimo 2 invalidos por cada motivo:
+#     :repartidor_desconocido
+#     :zona_desconocida
+#     :dia_invalido
+#     :kilometros_fuera_de_rango
+#     :retraso_invalido
+#
+# Reparto de este archivo:
+#   repartidores/0 -> MAFE
+#   zonas/0        -> MAFE
+#   servicios/0    -> SERGIO
+#
+# El grupo debe llenar este archivo.
+
 defmodule Datos do
 
   def repartidores do
@@ -32,6 +53,16 @@ defmodule Datos do
 
   def servicios do
     [
+      # ==========================================================
+      # SERGIO - 80 SERVICIOS VALIDOS
+      # ==========================================================
+      # 10 repartidores x 8 servicios = 80.
+      # Cada repartidor tiene al menos 3 servicios validos
+      # (requisito de R6) y servicios en los 6 dias.
+      # Cada repartidor pasa por las 4 zonas (requisito de R8).
+      # El dia 1 de M01 a M10 supera la meta diaria de 500 km
+      # y M04 supera los 80 km del dia (bonificacion de R4/R7).
+
       # ---- M01 (8 servicios) ----
       %{repartidor: "M01", zona: "Z1", dia: 1, kilometros: 20, retraso: 5},
       %{repartidor: "M01", zona: "Z2", dia: 1, kilometros: 25, retraso: 0},
@@ -133,6 +164,12 @@ defmodule Datos do
       %{repartidor: "M10", zona: "Z1", dia: 5, kilometros: 35, retraso: 18},
       %{repartidor: "M10", zona: "Z3", dia: 6, kilometros: 19, retraso: -6},
 
+      # ==========================================================
+      # SERGIO - 10 SERVICIOS INVALIDOS (2 POR CADA MOTIVO)
+      # ==========================================================
+      # Exactamente 2 por cada motivo exigido para que R1 muestre
+      # conteo 2 en cada categoria (comprobacion de PRUEBAS.md).
+
       # --- :repartidor_desconocido (2) ---
       %{repartidor: "M99", zona: "Z1", dia: 1, kilometros: 20, retraso: 3},
       %{repartidor: "MX1", zona: "Z2", dia: 2, kilometros: 15.5, retraso: -4},
@@ -152,6 +189,11 @@ defmodule Datos do
       # --- :retraso_invalido (2) ---
       %{repartidor: "M07", zona: "Z1", dia: 3, kilometros: 30, retraso: 250},
       %{repartidor: "M08", zona: "Z2", dia: 5, kilometros: 22, retraso: -45}
+
+      # Ejemplo de servicio con multiples errores simultaneos:
+      # %{repartidor: "M10", zona: "Z9", dia: 7, kilometros: 60, retraso: 500}
+      # Demuestra la regla del orden: aunque el dia, km y retraso son
+      # invalidos, la zona "Z9" falla antes y se registra como :zona_desconocida.
     ]
   end
 
